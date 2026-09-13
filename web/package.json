@@ -11,9 +11,6 @@
     "preview": "astro preview",
     "astro": "astro"
   },
-  "overrides": {
-    "vite": "^7"
-  },
   "dependencies": {
     "@astrojs/netlify": "^7.0.13",
     "@lucide/astro": "^1.7.0",
