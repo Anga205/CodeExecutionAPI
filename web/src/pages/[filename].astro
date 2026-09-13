@@ -1,0 +1,61 @@
+---
+import "../styles/global.css";
+import CompilerBody from "../components/compiler-body.astro";
+import Topbar from "../components/topbar.astro";
+import { getAngaDriveFileUrl, inferCompilerLanguage } from "../lib/compiler";
+
+const filename = Astro.params.filename;
+let source: string | null = null;
+let errorMessage = "The requested source file could not be found.";
+
+if (filename) {
+  try {
+    const response = await fetch(getAngaDriveFileUrl(filename));
+
+    if (response.ok) {
+      source = await response.text();
+    } else {
+      Astro.response.status = response.status === 404 ? 404 : 502;
+      errorMessage =
+        response.status === 404
+          ? `The source file "${filename}" could not be found.`
+          : "AngaDrive could not provide the requested source file.";
+    }
+  } catch (error) {
+    console.error("Failed to load source from AngaDrive.", error);
+    Astro.response.status = 502;
+    errorMessage = "The source file could not be loaded right now.";
+  }
+} else {
+  Astro.response.status = 404;
+}
+
+const language = inferCompilerLanguage(filename ?? "");
+const pageTitle = source === null ? "File not found | Anga's Online Compiler" : `${filename} | Anga's Online Compiler`;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/anga.svg" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="robots" content={source === null ? "noindex, nofollow" : "index, follow"} />
+    <title>{pageTitle}</title>
+  </head>
+  <body class="w-screen h-screen overflow-hidden">
+    {
+      source === null ? (
+        <main class="p-8 text-(--text-primary)">
+          <h1 class="text-2xl font-bold">Unable to open source file</h1>
+          <p class="mt-3">{errorMessage}</p>
+          <a class="mt-5 inline-block underline" href="/">Return to the online compiler</a>
+        </main>
+      ) : (
+        <>
+          <Topbar />
+          <CompilerBody initialCode={source} initialLanguage={language} />
+        </>
+      )
+    }
+  </body>
+</html>

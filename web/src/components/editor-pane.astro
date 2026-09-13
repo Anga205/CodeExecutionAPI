@@ -1,3 +1,12 @@
+---
+interface Props {
+  initialCode?: string;
+  initialLanguage?: string;
+}
+
+const { initialCode, initialLanguage = "python" } = Astro.props;
+---
+
 <section class="h-full min-w-65 bg-(--surface-1)" data-pane="left">
   <div class="flex h-12 border-b border-(--border-ui) bg-(--surface-0) px-2">
     <button
@@ -20,7 +29,12 @@
 
   <div class="h-[calc(100%-3rem)]">
     <div id="code-editor-panel" class="tab-panel h-full">
-      <div id="monaco-editor" class="h-full w-full"></div>
+      <div
+        id="monaco-editor"
+        class="h-full w-full"
+        data-initial-code={initialCode}
+        data-initial-language={initialLanguage}
+      ></div>
     </div>
     <div id="stdin-panel" class="tab-panel hidden h-full p-3">
       <textarea
@@ -89,8 +103,13 @@
 
   let monacoRef: MonacoModule | null = null;
   let editorRef: MonacoEditorInstance | null = null;
-  let activeLanguage = "python";
-  let activeStarterCode = starterCodeByLanguage.python;
+  const monacoContainer = document.getElementById("monaco-editor");
+  const initialEditorCode = monacoContainer?.dataset.initialCode;
+  const hasInitialCode = initialEditorCode !== undefined;
+  const requestedLanguage = monacoContainer?.dataset.initialLanguage ?? "python";
+  let activeLanguage = monacoLanguageMap[requestedLanguage] ? requestedLanguage : "python";
+  let activeStarterCode = initialEditorCode ?? starterCodeByLanguage[activeLanguage];
+  let isStarterCode = !hasInitialCode;
   const runtimeWindow = window as Window & {
     __compilerEditorApi?: {
       getCode: () => string;
@@ -133,8 +152,6 @@
     });
   });
 
-  const monacoContainer = document.getElementById("monaco-editor");
-
   const setEditorLanguage = (selectedLanguage: string) => {
     if (!monacoRef || !editorRef) return;
 
@@ -143,9 +160,11 @@
     const model = editorRef.getModel();
     if (!model) return;
 
-    if (editorRef.getValue() === activeStarterCode) {
+    if (isStarterCode && editorRef.getValue() === activeStarterCode) {
       editorRef.setValue(nextStarterCode);
       activeStarterCode = nextStarterCode;
+    } else {
+      isStarterCode = false;
     }
 
     monacoRef.editor.setModelLanguage(model, nextLanguage);

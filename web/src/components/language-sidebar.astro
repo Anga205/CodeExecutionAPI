@@ -7,21 +7,32 @@ const languages = [
   { key: "c", label: "C", iconClass: "devicon-c-plain" },
   { key: "cpp", label: "C++", iconClass: "devicon-cplusplus-plain" }
 ];
+
+interface Props {
+  initialLanguage?: string;
+}
+
+const { initialLanguage = "python" } = Astro.props;
+const selectedLanguage = languages.some((language) => language.key === initialLanguage) ? initialLanguage : "python";
 ---
 
-<aside id="language-sidebar" class="h-full w-full border-r border-(--border-ui) bg-(--surface-0)">
+<aside
+  id="language-sidebar"
+  class="h-full w-full border-r border-(--border-ui) bg-(--surface-0)"
+  data-initial-language={selectedLanguage}
+>
   <ul class="flex flex-col items-center gap-3 p-3">
     {
-      languages.map((language, index) => (
+      languages.map((language) => (
         <li>
           <button
             type="button"
             class:list={[
               "language-button group flex h-14 w-14 items-center justify-center rounded-lg border border-(--border-ui) bg-(--surface-0) text-(--text-muted) transition-transform duration-150 hover:scale-105",
-              index === 0 && "is-selected"
+              language.key === selectedLanguage && "is-selected"
             ]}
             data-language={language.key}
-            aria-pressed={index === 0 ? "true" : "false"}
+            aria-pressed={language.key === selectedLanguage ? "true" : "false"}
             title={language.label}
           >
             <i class:list={["text-2xl", language.iconClass]} aria-hidden="true"></i>
@@ -34,6 +45,7 @@ const languages = [
 
 <script>
   const languageButtons = document.querySelectorAll(".language-button");
+  const selectedLanguage = document.getElementById("language-sidebar")?.dataset.initialLanguage ?? "python";
 
   languageButtons.forEach((button) => {
     button.addEventListener("click", () => {
@@ -55,7 +67,7 @@ const languages = [
 
   window.dispatchEvent(
     new CustomEvent("compiler-language-change", {
-      detail: { language: "python" }
+      detail: { language: selectedLanguage }
     })
   );
 </script>
