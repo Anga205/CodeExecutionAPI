@@ -1,0 +1,111 @@
+---
+import { ChevronDown } from "@lucide/astro";
+import { LIMITS } from "../lib/compiler";
+---
+
+<details class="limits" id="limits">
+  <summary>
+    <ChevronDown aria-hidden="true" />
+    <span>Limits</span>
+    <span id="limits-summary" aria-live="polite">
+      {LIMITS.defaultTimeoutSeconds} s · {LIMITS.defaultMemoryMb} MB
+    </span>
+  </summary>
+
+  <div class="limits-panel">
+    <div class="field">
+      <label class="field-label" for="time-limit">
+        <span>Time limit</span>
+        <span class="field-hint">{LIMITS.minTimeoutSeconds}–{LIMITS.maxTimeoutSeconds} s</span>
+      </label>
+      <div class="field-row">
+        <input
+          id="time-limit"
+          class="input"
+          type="number"
+          inputmode="numeric"
+          min={LIMITS.minTimeoutSeconds}
+          max={LIMITS.maxTimeoutSeconds}
+          step="1"
+          value={LIMITS.defaultTimeoutSeconds}
+        />
+        <span class="input-suffix">seconds</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="memory-limit">
+        <span>Memory limit</span>
+        <span class="field-hint">{LIMITS.minMemoryMb}–{LIMITS.maxMemoryMb} MB</span>
+      </label>
+      <div class="field-row">
+        <input
+          id="memory-limit"
+          class="input"
+          type="number"
+          inputmode="numeric"
+          min={LIMITS.minMemoryMb}
+          max={LIMITS.maxMemoryMb}
+          step="1"
+          value={LIMITS.defaultMemoryMb}
+        />
+        <span class="input-suffix">MB</span>
+      </div>
+    </div>
+
+    <div class="limits-actions">
+      <button id="reset-limits" class="btn btn-sm" type="button">Reset to defaults</button>
+    </div>
+  </div>
+</details>
+
+<script>
+  import { LIMITS, clampMemory, clampTimeout } from "../lib/compiler";
+
+  const details = document.getElementById("limits") as HTMLDetailsElement | null;
+  const summary = document.getElementById("limits-summary");
+  const timeInput = document.getElementById("time-limit") as HTMLInputElement | null;
+  const memoryInput = document.getElementById("memory-limit") as HTMLInputElement | null;
+  const resetButton = document.getElementById("reset-limits") as HTMLButtonElement | null;
+
+  const updateSummary = () => {
+    if (!summary || !timeInput || !memoryInput) return;
+
+    const seconds = clampTimeout(Number(timeInput.value));
+    const megabytes = clampMemory(Number(memoryInput.value));
+    summary.textContent = `${seconds} s · ${megabytes} MB`;
+  };
+
+  const commitValue = (input: HTMLInputElement, clamp: (value: number) => number) => {
+    const clamped = clamp(Number(input.value));
+    input.value = String(clamped);
+    updateSummary();
+  };
+
+  timeInput?.addEventListener("change", () => commitValue(timeInput, clampTimeout));
+  memoryInput?.addEventListener("change", () => commitValue(memoryInput, clampMemory));
+  timeInput?.addEventListener("input", updateSummary);
+  memoryInput?.addEventListener("input", updateSummary);
+
+  resetButton?.addEventListener("click", () => {
+    if (timeInput) timeInput.value = String(LIMITS.defaultTimeoutSeconds);
+    if (memoryInput) memoryInput.value = String(LIMITS.defaultMemoryMb);
+    updateSummary();
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && details?.open) {
+      details.open = false;
+      details.querySelector("summary")?.focus();
+    }
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!details?.open) return;
+    if (event.target instanceof Node && !details.contains(event.target)) {
+      details.open = false;
+    }
+  });
+
+  updateSummary();
+</script>

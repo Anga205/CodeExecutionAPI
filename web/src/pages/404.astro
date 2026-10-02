@@ -1,18 +1,54 @@
 ---
+import "../styles/global.css";
+import Topbar from "../components/topbar.astro";
+import { REPOSITORY_URL } from "../lib/compiler";
 ---
 
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/anga.svg" />
     <meta name="viewport" content="width=device-width" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#1e1e1e" />
     <meta name="robots" content="noindex, nofollow" />
-    <title>404 | Page Not Found</title>
+    <title>Page not found | Online Compiler</title>
+    <script is:inline>
+      (() => {
+        try {
+          const saved = localStorage.getItem("compiler-theme");
+          const theme =
+            saved === "light" || saved === "dark"
+              ? saved
+              : window.matchMedia("(prefers-color-scheme: light)").matches
+                ? "light"
+                : "dark";
+          document.documentElement.dataset.theme = theme;
+        } catch {
+          document.documentElement.dataset.theme = "dark";
+        }
+      })();
+    </script>
   </head>
-  <body style="font-family: system-ui, sans-serif; padding: 2rem; line-height: 1.5;">
-    <main>
-      <h1>Page not found</h1>
-      <p>The page you requested does not exist.</p>
-      <p><a href="/">Return to the online compiler</a></p>
-    </main>
+  <body>
+    <div class="app">
+      <Topbar />
+      <main class="page-message">
+        <h1>Page not found</h1>
+        <p>The page you requested does not exist.</p>
+        <div class="page-message-actions">
+          <a class="btn btn-primary" href="/">Open the compiler</a>
+          <a
+            class="btn"
+            href={REPOSITORY_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            View source on GitHub
+          </a>
+        </div>
+      </main>
+    </div>
   </body>
 </html>
+

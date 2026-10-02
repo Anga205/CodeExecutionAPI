@@ -1,72 +1,149 @@
 ---
-import LanguageSidebar from "./language-sidebar.astro";
+import LanguageSelector from "./language-selector.astro";
+import LimitsControls from "./limits-controls.astro";
 import EditorPane from "./editor-pane.astro";
 import OutputPane from "./output-pane.astro";
 
 interface Props {
   initialCode?: string;
   initialLanguage?: string;
+  initialFilename?: string;
 }
 
-const { initialCode, initialLanguage = "python" } = Astro.props;
+const { initialCode, initialLanguage = "python", initialFilename } = Astro.props;
 ---
 
-<section id="compiler-body" class="h-11/12 w-screen bg-(--bg-app) text-(--text-primary)">
-  <div class="compiler-layout grid h-full w-full grid-cols-[84px_1fr]">
-    <LanguageSidebar initialLanguage={initialLanguage} />
+<main class="app-main" id="compiler-body">
+  <div class="toolbar">
+    <LanguageSelector initialLanguage={initialLanguage} />
+    <LimitsControls />
 
-    <div class="workspace-shell flex h-full min-w-0">
-      <div id="left-workspace" class="workspace-pane h-full" style="width: 62%">
-        <EditorPane initialCode={initialCode} initialLanguage={initialLanguage} />
-      </div>
+    <div class="toolbar-spacer"></div>
 
-      <div
-        id="workspace-divider"
-        class="h-full w-1 cursor-col-resize bg-(--surface-3) hover:bg-(--accent-language)"
-        aria-hidden="true"
-      ></div>
+    <button
+      id="run-code-button"
+      class="btn btn-primary toolbar-run"
+      type="button"
+      aria-keyshortcuts="Control+Enter Meta+Enter"
+    >
+      <span id="run-button-label">Run code</span>
+      <span class="kbd run-hint" id="run-shortcut-hint" aria-hidden="true">Ctrl ↵</span>
+    </button>
+  </div>
 
-      <div id="right-workspace" class="workspace-pane h-full flex-1 min-w-60">
-        <OutputPane />
-      </div>
+  <div class="workspace">
+    <div id="left-workspace" class="pane pane-editor">
+      <EditorPane
+        initialCode={initialCode}
+        initialLanguage={initialLanguage}
+        initialFilename={initialFilename}
+      />
+    </div>
+
+    <div
+      id="workspace-divider"
+      class="divider"
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Resize editor and output panes"
+      aria-valuemin="25"
+      aria-valuemax="75"
+      aria-valuenow="60"
+      tabindex="0"
+    ></div>
+
+    <div id="right-workspace" class="pane pane-output">
+      <OutputPane />
     </div>
   </div>
-</section>
+</main>
 
 <script>
-  const divider = document.getElementById("workspace-divider");
-  const leftPane = document.getElementById("left-workspace");
-  const rightPane = document.getElementById("right-workspace");
+  const SPLIT_STORAGE_KEY = "compiler-split";
+  const MIN_PERCENT = 25;
+  const MAX_PERCENT = 75;
+  const DEFAULT_PERCENT = 60;
 
-  if (divider && leftPane && rightPane) {
-    const parent = divider.parentElement;
+  const divider = document.getElementById("workspace-divider");
+  const workspace = divider?.parentElement;
+  const leftPane = document.getElementById("left-workspace");
+
+  const clampPercent = (value: number) =>
+    Math.min(Math.max(value, MIN_PERCENT), MAX_PERCENT);
+
+  const applyPercent = (percent: number) => {
+    if (!leftPane || !divider) return;
+
+    const clamped = Math.round(clampPercent(percent) * 10) / 10;
+    leftPane.style.setProperty("--split", `${clamped}%`);
+    divider.setAttribute("aria-valuenow", String(Math.round(clamped)));
+  };
+
+  const savedPercent = Number(localStorage.getItem(SPLIT_STORAGE_KEY));
+  applyPercent(Number.isFinite(savedPercent) && savedPercent > 0 ? savedPercent : DEFAULT_PERCENT);
+
+  if (divider && workspace && leftPane) {
     let dragging = false;
 
-    const onMouseMove = (event: { clientX: number; }) => {
-      if (!dragging || !parent) return;
-
-      const rect = parent.getBoundingClientRect();
-      const nextLeftWidth = event.clientX - rect.left;
-      const minLeft = 280;
-      const minRight = 240;
-      const maxLeft = rect.width - minRight - divider.offsetWidth;
-      const clampedLeft = Math.min(Math.max(nextLeftWidth, minLeft), maxLeft);
-
-      leftPane.style.width = `${clampedLeft}px`;
-      rightPane.style.width = `${rect.width - clampedLeft - divider.offsetWidth}px`;
-      rightPane.style.flex = "0 0 auto";
+    const percentFromPointer = (clientX: number) => {
+      const rect = workspace.getBoundingClientRect();
+      if (rect.width === 0) return DEFAULT_PERCENT;
+      return ((clientX - rect.left) / rect.width) * 100;
     };
 
-    divider.addEventListener("mousedown", () => {
+    const stopDragging = () => {
+      if (!dragging) return;
+      dragging = false;
+      divider.removeAttribute("data-dragging");
+      document.body.style.userSelect = "";
+      localStorage.setItem(
+        SPLIT_STORAGE_KEY,
+        divider.getAttribute("aria-valuenow") ?? String(DEFAULT_PERCENT)
+      );
+    };
+
+    divider.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) return;
       dragging = true;
+      divider.setAttribute("data-dragging", "true");
+      divider.setPointerCapture(event.pointerId);
       document.body.style.userSelect = "none";
+      event.preventDefault();
     });
 
-    window.addEventListener("mousemove", onMouseMove);
+    divider.addEventListener("pointermove", (event) => {
+      if (!dragging) return;
+      applyPercent(percentFromPointer(event.clientX));
+    });
 
-    window.addEventListener("mouseup", () => {
-      dragging = false;
-      document.body.style.userSelect = "";
+    divider.addEventListener("pointerup", stopDragging);
+    divider.addEventListener("pointercancel", stopDragging);
+
+    divider.addEventListener("keydown", (event) => {
+      const current = Number(divider.getAttribute("aria-valuenow") ?? DEFAULT_PERCENT);
+      let next: number | null = null;
+
+      if (event.key === "ArrowLeft") next = current - 2;
+      if (event.key === "ArrowRight") next = current + 2;
+      if (event.key === "Home") next = MIN_PERCENT;
+      if (event.key === "End") next = MAX_PERCENT;
+
+      if (next === null) return;
+
+      event.preventDefault();
+      applyPercent(next);
+      localStorage.setItem(SPLIT_STORAGE_KEY, divider.getAttribute("aria-valuenow") ?? String(DEFAULT_PERCENT));
+    });
+
+    divider.addEventListener("dblclick", () => {
+      applyPercent(DEFAULT_PERCENT);
+      localStorage.setItem(SPLIT_STORAGE_KEY, String(DEFAULT_PERCENT));
     });
   }
+
+  const shortcutHint = document.getElementById("run-shortcut-hint");
+  if (shortcutHint && /Mac|iPhone|iPad/.test(navigator.platform)) {
+    shortcutHint.textContent = "⌘ ↵";
+  }
 </script>
+

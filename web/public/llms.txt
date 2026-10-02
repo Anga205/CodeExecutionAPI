@@ -3,6 +3,7 @@
 > Browser-based online compiler for C, C++, Python, and Java with Monaco editor.
 
 - Site: https://compiler.anga.codes/
+- Source code: https://github.com/Anga205/CodeExecutionAPI
 - Product: Online code compiler and runtime sandbox
 - Languages: C, C++, Python, Java
 - Cost: Free
@@ -23,6 +24,7 @@ It supports configurable memory and time limits, standard input, and instant std
 - Interface sections:
   - Language selector
   - Code editor pane
+  - Standard input pane
   - Output pane
   - Runtime limits controls
 
@@ -39,3 +41,4 @@ It supports configurable memory and time limits, standard input, and instant std
 - robots.txt: https://compiler.anga.codes/robots.txt
 - sitemap.xml: https://compiler.anga.codes/sitemap.xml
 - llms mirror: https://compiler.anga.codes/.well-known/llms.txt
+

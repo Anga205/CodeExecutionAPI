@@ -1,86 +1,81 @@
 ---
+import { getLanguageConfig } from "../lib/compiler";
+
 interface Props {
   initialCode?: string;
   initialLanguage?: string;
+  initialFilename?: string;
 }
 
-const { initialCode, initialLanguage = "python" } = Astro.props;
+const { initialCode, initialLanguage = "python", initialFilename } = Astro.props;
+const language = getLanguageConfig(initialLanguage);
+const filename = initialFilename ?? language.filename;
 ---
 
-<section class="h-full min-w-65 bg-(--surface-1)" data-pane="left">
-  <div class="flex h-12 border-b border-(--border-ui) bg-(--surface-0) px-2">
-    <button
-      type="button"
-      class="tab-trigger is-active h-full border-b-2 border-(--text-primary) px-4 text-sm font-semibold text-(--text-primary) transition-transform duration-150 hover:scale-105"
-      data-target="code-editor-panel"
-      aria-selected="true"
-    >
-      EDITOR
-    </button>
-    <button
-      type="button"
-      class="tab-trigger h-full border-b-2 border-transparent px-4 text-sm font-medium text-(--text-muted) transition-transform duration-150 hover:scale-105"
-      data-target="stdin-panel"
-      aria-selected="false"
-    >
-      INPUT
-    </button>
+<section class="pane-body" data-pane="editor">
+  <div class="pane-header">
+    <div class="tabs" role="tablist" aria-label="Editor panels">
+      <button
+        id="tab-code"
+        class="tab"
+        type="button"
+        role="tab"
+        aria-selected="true"
+        aria-controls="code-editor-panel"
+        data-target="code-editor-panel"
+      >
+        Code
+      </button>
+      <button
+        id="tab-stdin"
+        class="tab"
+        type="button"
+        role="tab"
+        aria-selected="false"
+        aria-controls="stdin-panel"
+        tabindex="-1"
+        data-target="stdin-panel"
+      >
+        Input (stdin)
+        <span class="tab-count" id="stdin-count" hidden>0</span>
+      </button>
+    </div>
+    <span class="filename" id="editor-filename">{filename}</span>
   </div>
 
-  <div class="h-[calc(100%-3rem)]">
-    <div id="code-editor-panel" class="tab-panel h-full">
-      <div
-        id="monaco-editor"
-        class="h-full w-full"
-        data-initial-code={initialCode}
-        data-initial-language={initialLanguage}
-      ></div>
-    </div>
-    <div id="stdin-panel" class="tab-panel hidden h-full p-3">
-      <textarea
-        class="h-full w-full resize-none rounded-md border border-(--border-ui) bg-(--surface-0) p-3 text-sm text-(--text-primary) outline-none placeholder:text-(--text-muted) focus:border-(--accent-language)"
-        placeholder="Provide stdin input here"
-      ></textarea>
-    </div>
+  <div id="code-editor-panel" class="pane-body" role="tabpanel" aria-labelledby="tab-code">
+    <div id="editor-status" class="editor-status">Loading editor…</div>
+    <div
+      id="monaco-editor"
+      class="editor-host"
+      data-initial-code={initialCode}
+      data-initial-language={language.key}
+      hidden
+    ></div>
+  </div>
+
+  <div id="stdin-panel" class="stdin-panel" role="tabpanel" aria-labelledby="tab-stdin" hidden>
+    <label class="field-label" for="stdin-input">
+      <span>Standard input</span>
+      <span class="field-hint">One line per input</span>
+    </label>
+    <textarea
+      id="stdin-input"
+      class="stdin-input"
+      spellcheck="false"
+      autocomplete="off"
+      placeholder="Leave empty if your program does not read input."
+      aria-describedby="stdin-hint"
+    ></textarea>
+    <p class="field-hint" id="stdin-hint">
+      Each line is passed to your program in order, as if typed at the terminal.
+    </p>
   </div>
 </section>
 
 <script>
   import loader from "@monaco-editor/loader";
-
-  const monacoLanguageMap: Record<string, string> = {
-    python: "python",
-    java: "java",
-    c: "c",
-    cpp: "cpp"
-  };
-
-  const starterCodeByLanguage: Record<string, string> = {
-    python: 'print("Hello, World!")',
-    java: [
-      "public class Main {",
-      "  public static void main(String[] args) {",
-      "    System.out.println(\"Hello, World!\");",
-      "  }",
-      "}"
-    ].join("\n"),
-    c: [
-      "#include <stdio.h>",
-      "",
-      "int main(void) {",
-      '    printf("Hello, World!\\n");',
-      "    return 0;",
-      "}"
-    ].join("\n"),
-    cpp: [
-      "#include <iostream>",
-      "",
-      "int main() {",
-      '    std::cout << "Hello, World!" << std::endl;',
-      "    return 0;",
-      "}"
-    ].join("\n")
-  };
+  import { getLanguageConfig } from "../lib/compiler";
 
   type MonacoModel = unknown;
 
@@ -89,6 +84,7 @@ const { initialCode, initialLanguage = "python" } = Astro.props;
     getValue: () => string;
     setValue: (value: string) => void;
     layout: () => void;
+    focus: () => void;
   };
 
   type MonacoEditorApi = {
@@ -101,74 +97,115 @@ const { initialCode, initialLanguage = "python" } = Astro.props;
     editor: MonacoEditorApi;
   };
 
+  const container = document.getElementById("monaco-editor");
+  const status = document.getElementById("editor-status");
+  const filenameLabel = document.getElementById("editor-filename");
+  const stdinInput = document.getElementById("stdin-input") as HTMLTextAreaElement | null;
+  const stdinCount = document.getElementById("stdin-count");
+
+  const initialCode = container?.dataset.initialCode;
+  const hasInitialCode = initialCode !== undefined;
+  const requestedLanguage = container?.dataset.initialLanguage ?? "python";
+  const initialConfig = getLanguageConfig(requestedLanguage);
+
   let monacoRef: MonacoModule | null = null;
   let editorRef: MonacoEditorInstance | null = null;
-  const monacoContainer = document.getElementById("monaco-editor");
-  const initialEditorCode = monacoContainer?.dataset.initialCode;
-  const hasInitialCode = initialEditorCode !== undefined;
-  const requestedLanguage = monacoContainer?.dataset.initialLanguage ?? "python";
-  let activeLanguage = monacoLanguageMap[requestedLanguage] ? requestedLanguage : "python";
-  let activeStarterCode = initialEditorCode ?? starterCodeByLanguage[activeLanguage];
+  let activeLanguage = initialConfig.key;
+  let activeStarterCode = initialCode ?? initialConfig.starterCode;
   let isStarterCode = !hasInitialCode;
-  const runtimeWindow = window as Window & {
-    __compilerEditorApi?: {
-      getCode: () => string;
-      getStdin: () => string;
-    };
+  let pendingCode: string | null = null;
+
+  const getCode = () => {
+    if (editorRef) return editorRef.getValue();
+    return pendingCode ?? activeStarterCode;
   };
 
-  const stdinTextarea = document.querySelector<HTMLTextAreaElement>("#stdin-panel textarea");
-
-  runtimeWindow.__compilerEditorApi = {
-    getCode: () => editorRef?.getValue() ?? "",
-    getStdin: () => stdinTextarea?.value ?? ""
-  };
-
-  const tabTriggers = document.querySelectorAll(".tab-trigger");
-  const tabPanels = document.querySelectorAll(".tab-panel");
-
-  tabTriggers.forEach((trigger) => {
-    trigger.addEventListener("click", () => {
-      const targetId = trigger.getAttribute("data-target");
-
-      tabTriggers.forEach((item) => {
-        item.classList.remove("is-active", "border-[var(--text-primary)]", "text-[var(--text-primary)]");
-        item.classList.add("border-transparent", "text-[var(--text-muted)]");
-        item.setAttribute("aria-selected", "false");
-      });
-
-      tabPanels.forEach((panel) => {
-        panel.classList.add("hidden");
-      });
-
-      trigger.classList.add("is-active", "border-[var(--text-primary)]", "text-[var(--text-primary)]");
-      trigger.classList.remove("border-transparent", "text-[var(--text-muted)]");
-      trigger.setAttribute("aria-selected", "true");
-
-      const targetPanel = document.getElementById(targetId ?? "");
-      if (targetPanel) {
-        targetPanel.classList.remove("hidden");
+  window.__compilerEditorApi = {
+    getCode,
+    getStdin: () => stdinInput?.value ?? "",
+    focus: () => {
+      if (editorRef) {
+        editorRef.focus();
+        return;
       }
+      document.getElementById("tab-code")?.focus();
+    }
+  };
+
+  /* Tabs ---------------------------------------------------------------- */
+
+  const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+  const panels = Array.from(document.querySelectorAll<HTMLElement>('[role="tabpanel"]'));
+
+  const activateTab = (tab: HTMLButtonElement, moveFocus = false) => {
+    tabs.forEach((item) => {
+      const selected = item === tab;
+      item.setAttribute("aria-selected", String(selected));
+      item.tabIndex = selected ? 0 : -1;
+    });
+
+    panels.forEach((panel) => {
+      panel.hidden = panel.id !== tab.dataset.target;
+    });
+
+    if (moveFocus) tab.focus();
+    if (tab.dataset.target === "code-editor-panel") editorRef?.layout();
+  };
+
+  tabs.forEach((tab, index) => {
+    tab.addEventListener("click", () => activateTab(tab));
+
+    tab.addEventListener("keydown", (event) => {
+      let nextIndex: number | null = null;
+
+      if (event.key === "ArrowRight") nextIndex = (index + 1) % tabs.length;
+      if (event.key === "ArrowLeft") nextIndex = (index - 1 + tabs.length) % tabs.length;
+      if (event.key === "Home") nextIndex = 0;
+      if (event.key === "End") nextIndex = tabs.length - 1;
+
+      if (nextIndex === null) return;
+      event.preventDefault();
+      activateTab(tabs[nextIndex], true);
     });
   });
 
-  const setEditorLanguage = (selectedLanguage: string) => {
-    if (!monacoRef || !editorRef) return;
+  /* Stdin --------------------------------------------------------------- */
 
-    const nextLanguage = monacoLanguageMap[selectedLanguage] ?? "python";
-    const nextStarterCode = starterCodeByLanguage[selectedLanguage] ?? starterCodeByLanguage.python;
+  const updateStdinCount = () => {
+    if (!stdinCount || !stdinInput) return;
+
+    const lines = stdinInput.value === "" ? 0 : stdinInput.value.split("\n").length;
+    stdinCount.textContent = String(lines);
+    stdinCount.hidden = lines === 0;
+  };
+
+  stdinInput?.addEventListener("input", updateStdinCount);
+  updateStdinCount();
+
+  /* Language and theme -------------------------------------------------- */
+
+  const setEditorLanguage = (selectedLanguage: string) => {
+    const config = getLanguageConfig(selectedLanguage);
+
+    if (filenameLabel) filenameLabel.textContent = config.filename;
+
+    if (!monacoRef || !editorRef) {
+      activeLanguage = config.key;
+      return;
+    }
+
     const model = editorRef.getModel();
     if (!model) return;
 
     if (isStarterCode && editorRef.getValue() === activeStarterCode) {
-      editorRef.setValue(nextStarterCode);
-      activeStarterCode = nextStarterCode;
+      editorRef.setValue(config.starterCode);
+      activeStarterCode = config.starterCode;
     } else {
       isStarterCode = false;
     }
 
-    monacoRef.editor.setModelLanguage(model, nextLanguage);
-    activeLanguage = selectedLanguage;
+    monacoRef.editor.setModelLanguage(model, config.monacoLanguage);
+    activeLanguage = config.key;
   };
 
   window.addEventListener("compiler-language-change", (event) => {
@@ -189,20 +226,63 @@ const { initialCode, initialLanguage = "python" } = Astro.props;
     monacoRef?.editor.setTheme(selectedTheme === "light" ? "vs" : "vs-dark");
   });
 
-  if (monacoContainer) {
-    loader.init().then((monaco) => {
-      monacoRef = monaco as MonacoModule;
-      editorRef = monaco.editor.create(monacoContainer, {
-        value: activeStarterCode,
-        language: activeLanguage,
-        theme: document.documentElement.dataset.theme === "light" ? "vs" : "vs-dark",
-        minimap: { enabled: false },
-        fontSize: 14,
-        automaticLayout: true,
-        tabSize: 4
-      });
+  /* Monaco bootstrap ---------------------------------------------------- */
 
-      window.addEventListener("resize", () => editorRef?.layout());
-    });
+  const showEditorError = () => {
+    if (!status) return;
+
+    status.classList.add("editor-status-error");
+    status.textContent = "The code editor could not load. Check your connection, then reload the page.";
+  };
+
+  if (container) {
+    loader
+      .init()
+      .then((monaco) => {
+        monacoRef = monaco as MonacoModule;
+        editorRef = monaco.editor.create(container, {
+          value: activeStarterCode,
+          language: getLanguageConfig(activeLanguage).monacoLanguage,
+          theme: document.documentElement.dataset.theme === "light" ? "vs" : "vs-dark",
+          ariaLabel: "Code editor",
+          minimap: { enabled: false },
+          fontSize: 14,
+          fontFamily:
+            'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace',
+          automaticLayout: true,
+          scrollBeyondLastLine: false,
+          tabSize: 4,
+          padding: { top: 12, bottom: 12 }
+        });
+
+        container.hidden = false;
+        if (status) status.hidden = true;
+
+        if (pendingCode !== null) {
+          editorRef.setValue(pendingCode);
+          pendingCode = null;
+        }
+
+        editorRef.layout();
+      })
+      .catch((error) => {
+        console.error("Failed to load Monaco editor.", error);
+        showEditorError();
+      });
   }
+
+  // Keep the fallback code in sync if the editor never loads.
+  window.addEventListener("compiler-language-change", (event) => {
+    if (!(event instanceof CustomEvent)) return;
+    if (editorRef) return;
+
+    const selectedLanguage = event.detail?.language;
+    if (typeof selectedLanguage !== "string") return;
+
+    const config = getLanguageConfig(selectedLanguage);
+    if (isStarterCode) {
+      pendingCode = config.starterCode;
+      activeStarterCode = config.starterCode;
+    }
+  });
 </script>

@@ -1,131 +1,77 @@
 ---
 import { Moon, Sun } from "@lucide/astro";
+import { REPOSITORY_URL } from "../lib/compiler";
 ---
-<div id="topbar" class="h-1/12 w-screen flex border-b border-(--border-ui) bg-(--surface-1) text-(--text-primary)">
-    <div class="h-full aspect-square">
-        <img class="spin-scale-hover p-[12%]" src="/anga.svg" />
-    </div>
-    <div class="h-full ml-[0.5vw]">
-        <p class="text-[3.2vh] font-bold">Anga's</p>
-        <p class="text-[1.8vh] text-(--text-muted)">Online Compiler</p>
-    </div>
 
-    <div class="grow" />
+<header class="app-header">
+  <a class="brand" href="/" aria-label="Online Compiler home">
+    <img class="brand-mark" src="/anga.svg" alt="" width="28" height="28" />
+    <span class="brand-text">
+      <span class="brand-title">Online Compiler</span>
+      <span class="brand-subtitle">C · C++ · Python · Java</span>
+    </span>
+  </a>
 
-    <div id="topbar-controls" class="h-full flex-1 min-w-0 max-w-[68vw] flex items-center gap-[1vw] px-[1vw]">
-        <label id="limits-mode-wrapper" class="flex flex-col gap-[0.35vh] w-[18vw] min-w-[12vw]">
-            <span class="text-[1.3vh] uppercase tracking-wide text-(--text-muted)">Limits</span>
-            <select
-                id="limits-mode"
-                class="w-full h-[3.3vh] rounded-[0.6vw] border border-(--border-ui) bg-(--surface-0) text-(--text-primary) text-[1.35vh] px-[0.7vw]"
-                onchange="const controls=document.getElementById('custom-limits-controls');const isCustom=this.value === 'custom';controls.classList.toggle('hidden', !isCustom);controls.classList.toggle('flex', isCustom)"
-            >
-                <option value="default" selected>use default (reccomended) limits</option>
-                <option value="custom">use custom limits</option>
-            </select>
-        </label>
+  <div class="header-actions">
+    <a
+      class="btn btn-github"
+      href={REPOSITORY_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="View source code on GitHub (opens in a new tab)"
+    >
+      <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.4 7.4 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
+      </svg>
+      <span class="btn-github-label">GitHub</span>
+    </a>
 
-        <div id="custom-limits-controls" class="hidden flex-1 min-w-0 flex-col items-stretch gap-[0.55vh]">
-            <label class="flex flex-col gap-[0.25vh] w-full min-w-0">
-                <div class="flex items-center justify-between text-[1.3vh] uppercase tracking-wide text-(--text-muted)">
-                    <span>Memory Limit</span>
-                    <output id="memory-limit-value" for="memory-limit">32768 KB (32 MB)</output>
-                </div>
-                <input
-                    id="memory-limit"
-                    name="memory-limit"
-                    type="range"
-                    min="8192"
-                    max="131072"
-                    value="32768"
-                    step="1"
-                    class="
-                        w-full h-[0.5vh] rounded-full bg-(--surface-3) accent-(--accent-language)
-                        [&::-webkit-slider-thumb]:h-2
-                        [&::-webkit-slider-thumb]:w-2
-                        [&::-webkit-slider-thumb]:rounded-full
-                        [&::-webkit-slider-thumb]:bg-(--accent-language)
-                        [&::-webkit-slider-thumb]:appearance-none
-                        [&::-moz-range-thumb]:h-2
-                        [&::-moz-range-thumb]:w-2
-                        [&::-moz-range-thumb]:rounded-full
-                        [&::-moz-range-thumb]:bg-(--accent-language)
-                    "
-                    oninput="const mb=(Number(this.value)/1024).toFixed(3).replace(/\.?0+$/, '');document.getElementById('memory-limit-value').value = `${this.value} KB (${mb} MB)`"
-                />
-            </label>
-
-            <label class="flex flex-col gap-[0.25vh] w-full min-w-0">
-                <div class="flex items-center justify-between text-[1.3vh] uppercase tracking-wide text-(--text-muted)">
-                    <span>Time Limit</span>
-                    <output id="time-limit-value" for="time-limit">5 s</output>
-                </div>
-                <input
-                    id="time-limit"
-                    name="time-limit"
-                    type="range"
-                    min="1"
-                    max="60"
-                    value="5"
-                    step="1"
-                    class="
-                                                w-full h-[0.5vh] rounded-full bg-(--surface-3) accent-(--accent-language)
-                        [&::-webkit-slider-thumb]:h-1
-                        [&::-webkit-slider-thumb]:w-1
-                        [&::-webkit-slider-thumb]:rounded-full
-                                                [&::-webkit-slider-thumb]:bg-(--accent-language)
-                        [&::-webkit-slider-thumb]:appearance-none
-                        [&::-moz-range-thumb]:h-2
-                        [&::-moz-range-thumb]:w-2
-                        [&::-moz-range-thumb]:rounded-full
-                                                [&::-moz-range-thumb]:bg-(--accent-language)
-                    "
-                    oninput="document.getElementById('time-limit-value').value = `${this.value} s`"
-                />
-            </label>
-        </div>
-    </div>
-
-    <div id="theme-toggle-wrapper" class="h-full w-[4.8vw] flex items-center justify-center">
-                <button
-                        id="theme-toggle"
-                        type="button"
-                        aria-label="Toggle theme"
-                        class="h-[6vh] w-[3.2vw] rounded-md border border-(--border-ui) bg-(--surface-0) text-(--text-primary) transition-transform duration-150 hover:scale-105"
-                >
-                        <Sun id="theme-icon-sun" class="w-full h-full p-[20%]" />
-                        <Moon id="theme-icon-moon" class="hidden w-full h-full p-[20%]" />
-        </button>
-    </div>
-</div>
+    <button
+      id="theme-toggle"
+      class="btn btn-icon"
+      type="button"
+      aria-label="Switch to light theme"
+      title="Switch theme"
+    >
+      <Sun id="theme-icon-sun" aria-hidden="true" />
+      <Moon id="theme-icon-moon" aria-hidden="true" hidden />
+    </button>
+  </div>
+</header>
 
 <script>
-    const root = document.documentElement;
-    const themeToggle = document.getElementById("theme-toggle");
-    const sunIcon = document.getElementById("theme-icon-sun");
-    const moonIcon = document.getElementById("theme-icon-moon");
+  type Theme = "light" | "dark";
 
-    type Theme = "light" | "dark";
+  const root = document.documentElement;
+  const themeToggle = document.getElementById("theme-toggle");
+  const sunIcon = document.getElementById("theme-icon-sun");
+  const moonIcon = document.getElementById("theme-icon-moon");
+  const themeColorMeta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
 
-    const setTheme = (theme: Theme) => {
-        root.dataset.theme = theme;
-        localStorage.setItem("compiler-theme", theme);
+  const applyTheme = (theme: Theme) => {
+    root.dataset.theme = theme;
+    localStorage.setItem("compiler-theme", theme);
 
-        sunIcon?.classList.toggle("hidden", theme === "light");
-        moonIcon?.classList.toggle("hidden", theme === "dark");
+    sunIcon?.toggleAttribute("hidden", theme === "light");
+    moonIcon?.toggleAttribute("hidden", theme === "dark");
 
-        window.dispatchEvent(
-            new CustomEvent("compiler-theme-change", {
-                detail: { theme }
-            })
-        );
-    };
+    themeToggle?.setAttribute(
+      "aria-label",
+      theme === "light" ? "Switch to dark theme" : "Switch to light theme"
+    );
 
-    const savedTheme = localStorage.getItem("compiler-theme");
-    setTheme(savedTheme === "light" ? "light" : "dark");
+    themeColorMeta?.setAttribute("content", theme === "light" ? "#ffffff" : "#1e1e1e");
 
-    themeToggle?.addEventListener("click", () => {
-        const nextTheme: Theme = root.dataset.theme === "light" ? "dark" : "light";
-        setTheme(nextTheme);
-    });
+    window.dispatchEvent(
+      new CustomEvent("compiler-theme-change", { detail: { theme } })
+    );
+  };
+
+  const savedTheme = localStorage.getItem("compiler-theme");
+  const prefersLight = window.matchMedia("(prefers-color-scheme: light)").matches;
+  applyTheme(savedTheme === "light" || savedTheme === "dark" ? savedTheme : prefersLight ? "light" : "dark");
+
+  themeToggle?.addEventListener("click", () => {
+    applyTheme(root.dataset.theme === "light" ? "dark" : "light");
+  });
 </script>

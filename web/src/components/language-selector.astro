@@ -1,0 +1,61 @@
+---
+import { LANGUAGES } from "../lib/compiler";
+
+interface Props {
+  initialLanguage?: string;
+}
+
+const { initialLanguage = "python" } = Astro.props;
+const selectedLanguage = LANGUAGES.some((language) => language.key === initialLanguage)
+  ? initialLanguage
+  : "python";
+---
+
+<div class="toolbar-group">
+  <span class="toolbar-label" id="language-label">Language</span>
+  <div class="segmented" role="group" aria-labelledby="language-label" data-initial-language={selectedLanguage}>
+    {
+      LANGUAGES.map((language) => (
+        <button
+          type="button"
+          class="language-button"
+          data-language={language.key}
+          aria-pressed={language.key === selectedLanguage ? "true" : "false"}
+        >
+          {language.label}
+        </button>
+      ))
+    }
+  </div>
+</div>
+
+<script>
+  const group = document.querySelector<HTMLElement>(".segmented[data-initial-language]");
+  const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>(".language-button"));
+
+  const selectLanguage = (button: HTMLButtonElement) => {
+    buttons.forEach((item) => item.setAttribute("aria-pressed", "false"));
+    button.setAttribute("aria-pressed", "true");
+
+    window.dispatchEvent(
+      new CustomEvent("compiler-language-change", {
+        detail: { language: button.dataset.language ?? "python" }
+      })
+    );
+  };
+
+  buttons.forEach((button) => {
+    button.addEventListener("click", () => selectLanguage(button));
+  });
+
+  const initialLanguage = group?.dataset.initialLanguage ?? "python";
+  const initialButton = buttons.find((button) => button.dataset.language === initialLanguage);
+
+  if (initialButton) {
+    window.dispatchEvent(
+      new CustomEvent("compiler-language-change", {
+        detail: { language: initialLanguage }
+      })
+    );
+  }
+</script>

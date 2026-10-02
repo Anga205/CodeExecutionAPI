@@ -1,3 +1,5 @@
 # Anga's Online Compiler
 
 Canonical: https://compiler.anga.codes/llms.txt
+Source code: https://github.com/Anga205/CodeExecutionAPI
+
