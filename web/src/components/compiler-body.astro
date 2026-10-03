@@ -14,46 +14,53 @@ const { initialCode, initialLanguage = "python", initialFilename } = Astro.props
 ---
 
 <main class="app-main" id="compiler-body">
-  <div class="toolbar">
-    <LanguageSelector initialLanguage={initialLanguage} />
-    <LimitsControls />
+  <div class="compiler-layout">
+    <aside class="language-sidebar" aria-label="Language selection">
+      <LanguageSelector initialLanguage={initialLanguage} />
+    </aside>
 
-    <div class="toolbar-spacer"></div>
+    <div class="compiler-content">
+      <div class="toolbar">
+        <LimitsControls />
 
-    <button
-      id="run-code-button"
-      class="btn btn-primary toolbar-run"
-      type="button"
-      aria-keyshortcuts="Control+Enter Meta+Enter"
-    >
-      <span id="run-button-label">Run code</span>
-      <span class="kbd run-hint" id="run-shortcut-hint" aria-hidden="true">Ctrl ↵</span>
-    </button>
-  </div>
+        <div class="toolbar-spacer"></div>
 
-  <div class="workspace">
-    <div id="left-workspace" class="pane pane-editor">
-      <EditorPane
-        initialCode={initialCode}
-        initialLanguage={initialLanguage}
-        initialFilename={initialFilename}
-      />
-    </div>
+        <button
+          id="run-code-button"
+          class="btn btn-primary toolbar-run"
+          type="button"
+          aria-keyshortcuts="Control+Enter Meta+Enter"
+        >
+          <span id="run-button-label">Run code</span>
+          <span class="kbd run-hint" id="run-shortcut-hint" aria-hidden="true">Ctrl ↵</span>
+        </button>
+      </div>
 
-    <div
-      id="workspace-divider"
-      class="divider"
-      role="separator"
-      aria-orientation="vertical"
-      aria-label="Resize editor and output panes"
-      aria-valuemin="25"
-      aria-valuemax="75"
-      aria-valuenow="60"
-      tabindex="0"
-    ></div>
+      <div class="workspace">
+        <div id="left-workspace" class="pane pane-editor">
+          <EditorPane
+            initialCode={initialCode}
+            initialLanguage={initialLanguage}
+            initialFilename={initialFilename}
+          />
+        </div>
 
-    <div id="right-workspace" class="pane pane-output">
-      <OutputPane />
+        <div
+          id="workspace-divider"
+          class="divider"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize editor and output panes"
+          aria-valuemin="25"
+          aria-valuemax="75"
+          aria-valuenow="60"
+          tabindex="0"
+        ></div>
+
+        <div id="right-workspace" class="pane pane-output">
+          <OutputPane />
+        </div>
+      </div>
     </div>
   </div>
 </main>

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "devicon/devicon.min.css";
 
 /* ---------------------------------------------------------------------------
    Design tokens
@@ -224,6 +225,28 @@ textarea {
   min-height: 0;
 }
 
+.compiler-layout {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+
+.language-sidebar {
+  flex: 0 0 88px;
+  min-width: 88px;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.compiler-content {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
 /* ---------------------------------------------------------------------------
    Buttons
 --------------------------------------------------------------------------- */
@@ -340,37 +363,70 @@ textarea {
   flex: 1 1 auto;
 }
 
-/* Segmented language control */
+/* Language rail */
 
-.segmented {
-  display: inline-flex;
-  padding: 2px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
+.language-selector {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0.75rem 0.375rem;
 }
 
-.segmented button {
-  min-height: 1.75rem;
-  padding: 0 0.625rem;
-  border: 0;
-  border-radius: 3px;
+.language-sidebar-label {
+  margin: 0 0 0.5rem;
+  color: var(--text-faint);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.language-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.language-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  width: 100%;
+  min-height: 3.75rem;
+  padding: 0.375rem 0.125rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
   background: transparent;
   color: var(--text-muted);
-  font-size: 0.8125rem;
+  font-size: 0.6875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 120ms ease, color 120ms ease;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
 }
 
-.segmented button:hover {
+.language-button:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-2);
   color: var(--text);
 }
 
-.segmented button[aria-pressed="true"] {
+.language-button[aria-pressed="true"] {
+  border-color: var(--focus);
   background: var(--surface-3);
   color: var(--text);
   font-weight: 600;
+}
+
+.language-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.language-name {
+  line-height: 1.1;
 }
 
 /* Limits disclosure */
@@ -463,6 +519,12 @@ textarea {
   color: var(--text-faint);
 }
 
+.field-value {
+  color: var(--text);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
 .field-row {
   display: flex;
   align-items: center;
@@ -488,6 +550,45 @@ textarea {
 .input-suffix {
   font-size: 0.75rem;
   color: var(--text-muted);
+}
+
+.range-input {
+  min-height: 1.5rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  accent-color: var(--focus);
+  cursor: pointer;
+}
+
+.range-input::-webkit-slider-runnable-track {
+  height: 0.25rem;
+  border-radius: 999px;
+  background: var(--border-strong);
+}
+
+.range-input::-webkit-slider-thumb {
+  width: 1rem;
+  height: 1rem;
+  margin-top: -0.375rem;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--focus);
+  appearance: none;
+}
+
+.range-input::-moz-range-track {
+  height: 0.25rem;
+  border-radius: 999px;
+  background: var(--border-strong);
+}
+
+.range-input::-moz-range-thumb {
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--focus);
 }
 
 /* ---------------------------------------------------------------------------
@@ -892,6 +993,37 @@ textarea {
     padding: 0.5rem 0.75rem;
   }
 
+  .compiler-layout {
+    flex-direction: column;
+  }
+
+  .language-sidebar {
+    flex: 0 0 auto;
+    min-width: 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .language-selector {
+    padding: 0.375rem 0.75rem;
+  }
+
+  .language-sidebar-label {
+    display: none;
+  }
+
+  .language-options {
+    flex-direction: row;
+    gap: 0.375rem;
+  }
+
+  .language-button {
+    flex: 1 1 0;
+    min-height: 2.75rem;
+    flex-direction: row;
+    gap: 0.375rem;
+  }
+
   .toolbar-spacer {
     display: none;
   }
@@ -948,15 +1080,6 @@ textarea {
 
   .toolbar-label {
     display: none;
-  }
-
-  .segmented {
-    flex: 1 1 auto;
-  }
-
-  .segmented button {
-    flex: 1 1 0;
-    padding: 0 0.375rem;
   }
 
   .run-hint {

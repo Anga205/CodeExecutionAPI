@@ -16,40 +16,36 @@ import { LIMITS } from "../lib/compiler";
     <div class="field">
       <label class="field-label" for="time-limit">
         <span>Time limit</span>
-        <span class="field-hint">{LIMITS.minTimeoutSeconds}–{LIMITS.maxTimeoutSeconds} s</span>
+        <span class="field-value" id="time-limit-value" aria-live="polite">{LIMITS.defaultTimeoutSeconds} s</span>
       </label>
       <div class="field-row">
         <input
           id="time-limit"
-          class="input"
-          type="number"
-          inputmode="numeric"
+          class="input range-input"
+          type="range"
           min={LIMITS.minTimeoutSeconds}
           max={LIMITS.maxTimeoutSeconds}
           step="1"
           value={LIMITS.defaultTimeoutSeconds}
         />
-        <span class="input-suffix">seconds</span>
       </div>
     </div>
 
     <div class="field">
       <label class="field-label" for="memory-limit">
         <span>Memory limit</span>
-        <span class="field-hint">{LIMITS.minMemoryMb}–{LIMITS.maxMemoryMb} MB</span>
+        <span class="field-value" id="memory-limit-value" aria-live="polite">{LIMITS.defaultMemoryMb} MB</span>
       </label>
       <div class="field-row">
         <input
           id="memory-limit"
-          class="input"
-          type="number"
-          inputmode="numeric"
+          class="input range-input"
+          type="range"
           min={LIMITS.minMemoryMb}
           max={LIMITS.maxMemoryMb}
           step="1"
           value={LIMITS.defaultMemoryMb}
         />
-        <span class="input-suffix">MB</span>
       </div>
     </div>
 
@@ -66,6 +62,8 @@ import { LIMITS } from "../lib/compiler";
   const summary = document.getElementById("limits-summary");
   const timeInput = document.getElementById("time-limit") as HTMLInputElement | null;
   const memoryInput = document.getElementById("memory-limit") as HTMLInputElement | null;
+  const timeValue = document.getElementById("time-limit-value");
+  const memoryValue = document.getElementById("memory-limit-value");
   const resetButton = document.getElementById("reset-limits") as HTMLButtonElement | null;
 
   const updateSummary = () => {
@@ -74,6 +72,8 @@ import { LIMITS } from "../lib/compiler";
     const seconds = clampTimeout(Number(timeInput.value));
     const megabytes = clampMemory(Number(memoryInput.value));
     summary.textContent = `${seconds} s · ${megabytes} MB`;
+    if (timeValue) timeValue.textContent = `${seconds} s`;
+    if (memoryValue) memoryValue.textContent = `${megabytes} MB`;
   };
 
   const commitValue = (input: HTMLInputElement, clamp: (value: number) => number) => {

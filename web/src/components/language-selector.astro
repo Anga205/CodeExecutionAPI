@@ -11,9 +11,14 @@ const selectedLanguage = LANGUAGES.some((language) => language.key === initialLa
   : "python";
 ---
 
-<div class="toolbar-group">
-  <span class="toolbar-label" id="language-label">Language</span>
-  <div class="segmented" role="group" aria-labelledby="language-label" data-initial-language={selectedLanguage}>
+<div
+  class="language-selector"
+  role="group"
+  aria-labelledby="language-label"
+  data-initial-language={selectedLanguage}
+>
+  <span class="language-sidebar-label" id="language-label">Language</span>
+  <div class="language-options">
     {
       LANGUAGES.map((language) => (
         <button
@@ -21,8 +26,13 @@ const selectedLanguage = LANGUAGES.some((language) => language.key === initialLa
           class="language-button"
           data-language={language.key}
           aria-pressed={language.key === selectedLanguage ? "true" : "false"}
+          title={`Use ${language.label}`}
         >
-          {language.label}
+          <i
+            class={`language-icon devicon-${language.key === "cpp" ? "cplusplus" : language.key}-plain`}
+            aria-hidden="true"
+          ></i>
+          <span class="language-name">{language.label}</span>
         </button>
       ))
     }
@@ -30,7 +40,7 @@ const selectedLanguage = LANGUAGES.some((language) => language.key === initialLa
 </div>
 
 <script>
-  const group = document.querySelector<HTMLElement>(".segmented[data-initial-language]");
+  const group = document.querySelector<HTMLElement>(".language-selector[data-initial-language]");
   const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>(".language-button"));
 
   const selectLanguage = (button: HTMLButtonElement) => {
