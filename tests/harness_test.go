@@ -2,6 +2,7 @@ package tests
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -65,7 +66,11 @@ func callSimpleExecuteRaw(baseURL string, req simpleExecuteRequest) (simpleExecu
 		return simpleExecuteResponse{}, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	httpReq, err := http.NewRequest(http.MethodPost, baseURL+"/execute", bytes.NewReader(body))
+	deadline := requestDeadline(req)
+	ctx, cancel := context.WithTimeout(context.Background(), deadline)
+	defer cancel()
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+"/execute", bytes.NewReader(body))
 	if err != nil {
 		return simpleExecuteResponse{}, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -73,7 +78,7 @@ func callSimpleExecuteRaw(baseURL string, req simpleExecuteRequest) (simpleExecu
 
 	httpResp, err := httpClient.Do(httpReq)
 	if err != nil {
-		return simpleExecuteResponse{}, fmt.Errorf("request failed: %w", err)
+		return simpleExecuteResponse{}, fmt.Errorf("request failed after %s deadline: %w", deadline, err)
 	}
 	defer httpResp.Body.Close()
 	return decodeSimpleResponseRaw(httpResp)

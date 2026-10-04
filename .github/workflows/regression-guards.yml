@@ -10,6 +10,7 @@ jobs:
   regression-guards:
     name: Regression Guards
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
@@ -24,7 +25,7 @@ jobs:
         run: go vet ./...
 
       - name: Run unit tests (non-root packages)
-        run: go test ./config ./dispatcher ./executor ./models ./resourcemanager ./routes ./tests/executor
+        run: go test -timeout 120s ./config ./dispatcher ./executor ./models ./resourcemanager ./routes ./tests/executor
 
       - name: Run regression guard checks
         run: bash .github/scripts/check_regressions.sh

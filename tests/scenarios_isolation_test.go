@@ -123,7 +123,7 @@ func scenarioIOFloodResilience(t *testing.T, h integrationHarness, lang language
 		t.Fatalf("stderr exceeded resilience cap: got=%d bytes cap=%d", len(resp.Error), maxErrorBytes)
 	}
 
-	assertDurationNotExcessive(t, resp.CPUTime, 3*time.Second, "io flood request")
+	assertDurationNotExcessive(t, resp.CPUTime, maxIOFloodResponseDuration, "io flood request")
 }
 
 func scenarioSignalTrapTimeout(t *testing.T, h integrationHarness, lang language) {
@@ -140,7 +140,7 @@ func scenarioSignalTrapTimeout(t *testing.T, h integrationHarness, lang language
 func scenarioOrphanReaping(t *testing.T, h integrationHarness, lang language) {
 	code := lang.load(t, "orphan_maker", nil)
 	resp := callSimpleExecute(t, h.baseURL, buildLanguageRequest(lang.Name, code, 2, 32768))
-	assertDurationNotExcessive(t, resp.CPUTime, 3*time.Second, "orphan maker request")
+	assertDurationNotExcessive(t, resp.CPUTime, maxOrphanReapResponseDuration, "orphan maker request")
 
 	time.Sleep(400 * time.Millisecond)
 	if cnt := countProcessesByComm(t, lang.OrphanName); cnt > 0 {
@@ -169,7 +169,7 @@ func scenarioInodeExhaustion(t *testing.T, h integrationHarness, lang language) 
 func scenarioPrivilegedSyscallDenied(t *testing.T, h integrationHarness, lang language) {
 	code := lang.load(t, "try_reboot", nil)
 	resp := callSimpleExecute(t, h.baseURL, buildLanguageRequest(lang.Name, code, 3, 32768))
-	assertDurationNotExcessive(t, resp.CPUTime, 3*time.Second, "privileged reboot syscall")
+	assertDurationNotExcessive(t, resp.CPUTime, maxPrivilegedSyscallResponseDuration, "privileged reboot syscall")
 
 	combinedLower := strings.ToLower(resp.Output + "\n" + resp.Error)
 	if strings.Contains(combinedLower, "reboot succeeded unexpectedly") {

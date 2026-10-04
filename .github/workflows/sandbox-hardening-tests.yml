@@ -10,6 +10,7 @@ jobs:
   test-etc-write-denied-c:
     name: "Hardening: /etc Write Denied (C)"
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
@@ -26,11 +27,12 @@ jobs:
           sudo apt-get install -y gcc libc6-dev python3
 
       - name: Run hardening /etc write denied subtest (C)
-        run: sudo -E go test -v -run '^TestSandboxHardeningC$/^sandbox cannot write to host /etc/passwd$' ./...
+        run: sudo -E go test -timeout 120s -v -run '^TestSandboxHardeningC$/^sandbox cannot write to host /etc/passwd$' ./...
 
   test-etc-write-denied-python3:
     name: "Hardening: /etc Write Denied (Python3)"
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
@@ -47,11 +49,12 @@ jobs:
           sudo apt-get install -y gcc libc6-dev python3
 
       - name: Run hardening /etc write denied subtest (Python3)
-        run: sudo -E go test -v -run '^TestSandboxHardeningPython3$/^sandbox cannot write to host /etc/passwd$' ./...
+        run: sudo -E go test -timeout 120s -v -run '^TestSandboxHardeningPython3$/^sandbox cannot write to host /etc/passwd$' ./...
 
   test-remount-denied-c:
     name: "Hardening: /etc Remount Denied (C)"
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
@@ -68,11 +71,12 @@ jobs:
           sudo apt-get install -y gcc libc6-dev python3
 
       - name: Run hardening remount denied subtest (C)
-        run: sudo -E go test -v -run '^TestSandboxHardeningC$/^remounting /etc read-write is denied$' ./...
+        run: sudo -E go test -timeout 120s -v -run '^TestSandboxHardeningC$/^remounting /etc read-write is denied$' ./...
 
   test-remount-denied-python3:
     name: "Hardening: /etc Remount Denied (Python3)"
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
@@ -89,11 +93,12 @@ jobs:
           sudo apt-get install -y gcc libc6-dev python3
 
       - name: Run hardening remount denied subtest (Python3)
-        run: sudo -E go test -v -run '^TestSandboxHardeningPython3$/^remounting /etc read-write is denied$' ./...
+        run: sudo -E go test -timeout 120s -v -run '^TestSandboxHardeningPython3$/^remounting /etc read-write is denied$' ./...
 
   test-not-host-root-c:
     name: "Hardening: Not Host Root (C)"
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
@@ -110,11 +115,12 @@ jobs:
           sudo apt-get install -y gcc libc6-dev python3
 
       - name: Run hardening host-root separation subtest (C)
-        run: sudo -E go test -v -run '^TestSandboxHardeningC$/^sandbox process uid is not host root$' ./...
+        run: sudo -E go test -timeout 120s -v -run '^TestSandboxHardeningC$/^sandbox process uid is not host root$' ./...
 
   test-not-host-root-python3:
     name: "Hardening: Not Host Root (Python3)"
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
@@ -131,11 +137,12 @@ jobs:
           sudo apt-get install -y gcc libc6-dev python3
 
       - name: Run hardening host-root separation subtest (Python3)
-        run: sudo -E go test -v -run '^TestSandboxHardeningPython3$/^sandbox process uid is not host root$' ./...
+        run: sudo -E go test -timeout 120s -v -run '^TestSandboxHardeningPython3$/^sandbox process uid is not host root$' ./...
 
   test-seccomp-c:
     name: "Hardening: Seccomp Blocks Dangerous Syscalls (C)"
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
@@ -152,11 +159,12 @@ jobs:
           sudo apt-get install -y gcc libc6-dev python3
 
       - name: Run hardening seccomp subtest (C)
-        run: sudo -E go test -v -run '^TestSandboxHardeningC$/^dangerous syscalls are blocked by seccomp$' ./...
+        run: sudo -E go test -timeout 120s -v -run '^TestSandboxHardeningC$/^dangerous syscalls are blocked by seccomp$' ./...
 
   test-seccomp-python3:
     name: "Hardening: Seccomp Blocks Dangerous Syscalls (Python3)"
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
@@ -173,11 +181,12 @@ jobs:
           sudo apt-get install -y gcc libc6-dev python3
 
       - name: Run hardening seccomp subtest (Python3)
-        run: sudo -E go test -v -run '^TestSandboxHardeningPython3$/^dangerous syscalls are blocked by seccomp$' ./...
+        run: sudo -E go test -timeout 120s -v -run '^TestSandboxHardeningPython3$/^dangerous syscalls are blocked by seccomp$' ./...
 
   test-env-leak-c:
     name: "Hardening: Host Env Not Exposed (C)"
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
@@ -194,11 +203,12 @@ jobs:
           sudo apt-get install -y gcc libc6-dev python3
 
       - name: Run hardening env isolation subtest (C)
-        run: sudo -E go test -v -run '^TestSandboxHardeningC$/^sandbox environment does not expose host$' ./...
+        run: sudo -E go test -timeout 120s -v -run '^TestSandboxHardeningC$/^sandbox environment does not expose host$' ./...
 
   test-env-leak-python3:
     name: "Hardening: Host Env Not Exposed (Python3)"
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
@@ -215,11 +225,12 @@ jobs:
           sudo apt-get install -y gcc libc6-dev python3
 
       - name: Run hardening env isolation subtest (Python3)
-        run: sudo -E go test -v -run '^TestSandboxHardeningPython3$/^sandbox environment does not expose host$' ./...
+        run: sudo -E go test -timeout 120s -v -run '^TestSandboxHardeningPython3$/^sandbox environment does not expose host$' ./...
 
   test-hostile-boundary-chain:
     name: "Hardening: Hostile Boundary Attack Chain (C)"
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -236,11 +247,12 @@ jobs:
           sudo apt-get install -y gcc libc6-dev
 
       - name: Run hostile boundary attack chain
-        run: sudo -E go test -v -count=3 -run '^TestSandboxHardeningC$/^hostile boundary attack chain cannot cross sandbox$' ./...
+        run: sudo -E go test -timeout 300s -v -count=3 -run '^TestSandboxHardeningC$/^hostile boundary attack chain cannot cross sandbox$' ./...
 
   test-remaining-boundaries:
     name: "Hardening: IPC UTS Proc FD Socket Temp Boundaries"
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -257,11 +269,12 @@ jobs:
           sudo apt-get install -y gcc libc6-dev
 
       - name: Run repeated remaining-boundary suite
-        run: sudo -E go test -v -count=3 -run '^TestSecurityBoundaryNamespacesAndInheritedResources$' ./...
+        run: sudo -E go test -timeout 300s -v -count=3 -run '^TestSecurityBoundaryNamespacesAndInheritedResources$' ./...
 
   test-regression-guards:
     name: "Hardening: Regression Guards"
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
