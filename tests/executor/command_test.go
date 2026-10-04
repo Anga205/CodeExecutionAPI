@@ -1,18 +1,20 @@
-package executor
+package executor_test
 
 import (
 	"syscall"
 	"testing"
+
+	"CodeSandboxAPI/executor"
 )
 
 func TestBuildSandboxCommandSetsIsolationFlags(t *testing.T) {
-	ws := sandboxWorkspace{
-		dir:        "/tmp/sandbox-dir",
-		runCommand: []string{"/bin/echo", "ok"},
-		useChroot:  true,
+	ws := executor.SandboxWorkspace{
+		Dir:        "/tmp/sandbox-dir",
+		RunCommand: []string{"/bin/echo", "ok"},
+		UseChroot:  true,
 	}
 
-	cmd := buildSandboxCommand("", ws, 7)
+	cmd := executor.BuildSandboxCommand("", ws, 7)
 	attr := cmd.SysProcAttr
 	if attr == nil {
 		t.Fatal("SysProcAttr must be set")
@@ -52,8 +54,8 @@ func TestBuildSandboxCommandSetsIsolationFlags(t *testing.T) {
 	if attr.GidMappingsEnableSetgroups {
 		t.Fatal("GidMappingsEnableSetgroups must be false for namespace setup")
 	}
-	if attr.Chroot != ws.dir {
-		t.Fatalf("unexpected chroot: got=%q want=%q", attr.Chroot, ws.dir)
+	if attr.Chroot != ws.Dir {
+		t.Fatalf("unexpected chroot: got=%q want=%q", attr.Chroot, ws.Dir)
 	}
 	if cmd.Dir != "/" {
 		t.Fatalf("unexpected command dir: got=%q want=%q", cmd.Dir, "/")
@@ -61,27 +63,27 @@ func TestBuildSandboxCommandSetsIsolationFlags(t *testing.T) {
 }
 
 func TestBuildSandboxCommandRequiresCgroupFD(t *testing.T) {
-	ws := sandboxWorkspace{dir: "/tmp/sandbox-dir", runCommand: []string{"/bin/true"}}
+	ws := executor.SandboxWorkspace{Dir: "/tmp/sandbox-dir", RunCommand: []string{"/bin/true"}}
 
-	withCgroup := buildSandboxCommand("", ws, 9)
+	withCgroup := executor.BuildSandboxCommand("", ws, 9)
 	if withCgroup.SysProcAttr == nil || !withCgroup.SysProcAttr.UseCgroupFD {
 		t.Fatal("sandbox launch must use cgroup fd attachment")
 	}
 
-	withoutCgroup := buildSandboxCommandWithoutCgroupFD("", ws)
+	withoutCgroup := executor.BuildSandboxCommandWithoutCgroupFD("", ws)
 	if withoutCgroup.SysProcAttr == nil || withoutCgroup.SysProcAttr.UseCgroupFD {
 		t.Fatal("the non-cgroup command builder must remain unavailable to the launch path")
 	}
 }
 
 func TestBuildSandboxCommandUsesMinimalEnvironment(t *testing.T) {
-	ws := sandboxWorkspace{
-		dir:        "/tmp/sandbox-dir",
-		runCommand: []string{"/bin/echo", "ok"},
-		extraEnv:   []string{"JAVA_HOME=/usr/lib/jvm/default-java"},
+	ws := executor.SandboxWorkspace{
+		Dir:        "/tmp/sandbox-dir",
+		RunCommand: []string{"/bin/echo", "ok"},
+		ExtraEnv:   []string{"JAVA_HOME=/usr/lib/jvm/default-java"},
 	}
 
-	cmd := buildSandboxCommand("", ws, 5)
+	cmd := executor.BuildSandboxCommand("", ws, 5)
 
 	want := []string{
 		"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",

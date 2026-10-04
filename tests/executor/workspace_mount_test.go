@@ -1,15 +1,17 @@
-package executor
+package executor_test
 
 import (
 	"errors"
 	"syscall"
 	"testing"
+
+	"CodeSandboxAPI/executor"
 )
 
-func TestBindMountReadOnlyUsesRemountReadOnly(t *testing.T) {
-	original := syscallMount
-	t.Cleanup(func() { syscallMount = original })
+// These tests replace the executor's mount syscall hooks, so they must not run
+// in parallel with each other.
 
+func TestBindMountReadOnlyUsesRemountReadOnly(t *testing.T) {
 	type mountCall struct {
 		source string
 		target string
@@ -19,13 +21,17 @@ func TestBindMountReadOnlyUsesRemountReadOnly(t *testing.T) {
 	}
 	calls := make([]mountCall, 0, 2)
 
-	syscallMount = func(source, target, fstype string, flags uintptr, data string) error {
-		calls = append(calls, mountCall{source: source, target: target, fstype: fstype, flags: flags, data: data})
-		return nil
-	}
+	restore := executor.SetMountFuncsForTest(
+		func(source, target, fstype string, flags uintptr, data string) error {
+			calls = append(calls, mountCall{source: source, target: target, fstype: fstype, flags: flags, data: data})
+			return nil
+		},
+		nil,
+	)
+	t.Cleanup(restore)
 
-	if err := bindMountReadOnly("/src", "/dst"); err != nil {
-		t.Fatalf("bindMountReadOnly returned error: %v", err)
+	if err := executor.BindMountReadOnly("/src", "/dst"); err != nil {
+		t.Fatalf("BindMountReadOnly returned error: %v", err)
 	}
 
 	if len(calls) != 2 {
@@ -50,44 +56,41 @@ func TestBindMountReadOnlyUsesRemountReadOnly(t *testing.T) {
 }
 
 func TestBindMountReadOnlyReturnsFirstError(t *testing.T) {
-	original := syscallMount
-	t.Cleanup(func() { syscallMount = original })
-
 	wantErr := errors.New("bind failed")
-	syscallMount = func(source, target, fstype string, flags uintptr, data string) error {
-		return wantErr
-	}
+	restore := executor.SetMountFuncsForTest(
+		func(source, target, fstype string, flags uintptr, data string) error {
+			return wantErr
+		},
+		nil,
+	)
+	t.Cleanup(restore)
 
-	err := bindMountReadOnly("/src", "/dst")
+	err := executor.BindMountReadOnly("/src", "/dst")
 	if !errors.Is(err, wantErr) {
 		t.Fatalf("unexpected error: got=%v want=%v", err, wantErr)
 	}
 }
 
 func TestBindMountReadOnlyRollsBackAfterRemountFailure(t *testing.T) {
-	originalMount := syscallMount
-	originalUnmount := syscallUnmount
-	t.Cleanup(func() {
-		syscallMount = originalMount
-		syscallUnmount = originalUnmount
-	})
-
 	remountErr := errors.New("remount failed")
 	var unmounted string
 	mountCalls := 0
-	syscallMount = func(source, target, fstype string, flags uintptr, data string) error {
-		mountCalls++
-		if mountCalls == 2 {
-			return remountErr
-		}
-		return nil
-	}
-	syscallUnmount = func(target string, flags int) error {
-		unmounted = target
-		return nil
-	}
+	restore := executor.SetMountFuncsForTest(
+		func(source, target, fstype string, flags uintptr, data string) error {
+			mountCalls++
+			if mountCalls == 2 {
+				return remountErr
+			}
+			return nil
+		},
+		func(target string, flags int) error {
+			unmounted = target
+			return nil
+		},
+	)
+	t.Cleanup(restore)
 
-	err := bindMountReadOnly("/src", "/dst")
+	err := executor.BindMountReadOnly("/src", "/dst")
 	if !errors.Is(err, remountErr) {
 		t.Fatalf("unexpected error: got=%v want=%v", err, remountErr)
 	}
@@ -97,9 +100,6 @@ func TestBindMountReadOnlyRollsBackAfterRemountFailure(t *testing.T) {
 }
 
 func TestPrepareRuntimeMountsMarksRootPrivateFirst(t *testing.T) {
-	original := syscallMount
-	t.Cleanup(func() { syscallMount = original })
-
 	tempDir := t.TempDir()
 	source := t.TempDir()
 
@@ -110,19 +110,23 @@ func TestPrepareRuntimeMountsMarksRootPrivateFirst(t *testing.T) {
 	}
 	calls := make([]mountCall, 0, 3)
 
-	syscallMount = func(source, target, fstype string, flags uintptr, data string) error {
-		calls = append(calls, mountCall{source: source, target: target, flags: flags})
-		return nil
+	restore := executor.SetMountFuncsForTest(
+		func(source, target, fstype string, flags uintptr, data string) error {
+			calls = append(calls, mountCall{source: source, target: target, flags: flags})
+			return nil
+		},
+		nil,
+	)
+	t.Cleanup(restore)
+
+	ws := executor.SandboxWorkspace{
+		Dir:           tempDir,
+		UseChroot:     true,
+		RuntimeMounts: []string{source},
 	}
 
-	ws := sandboxWorkspace{
-		dir:           tempDir,
-		useChroot:     true,
-		runtimeMounts: []string{source},
-	}
-
-	if err := prepareRuntimeMounts(&ws); err != nil {
-		t.Fatalf("prepareRuntimeMounts returned error: %v", err)
+	if err := executor.PrepareRuntimeMounts(&ws); err != nil {
+		t.Fatalf("PrepareRuntimeMounts returned error: %v", err)
 	}
 	if len(calls) < 1 {
 		t.Fatal("expected at least one mount call")

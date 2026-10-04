@@ -78,7 +78,7 @@ func Execute(req models.Request) (models.Response, error) {
 	return executeSandboxedBinary(req, ws, cg, trace)
 }
 
-func executeSandboxedBinary(req models.Request, ws sandboxWorkspace, cg *resourcemanager.CgroupHandle, trace *executionTrace) (models.Response, error) {
+func executeSandboxedBinary(req models.Request, ws SandboxWorkspace, cg *resourcemanager.CgroupHandle, trace *executionTrace) (models.Response, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), req.Timeout)
 	defer cancel()
 	trace.ok("created execution timeout context")
@@ -106,12 +106,12 @@ func executeSandboxedBinary(req models.Request, ws sandboxWorkspace, cg *resourc
 	return finalizeResponse(cmd, stdoutBuf.String(), stderrBuf.String(), time.Since(start), observedPeak, timedOut, waitErr, cg)
 }
 
-func buildCommandBuffers(stdin string, ws sandboxWorkspace, cgroupFD int) (*exec.Cmd, *limitedBuffer, *limitedBuffer) {
+func buildCommandBuffers(stdin string, ws SandboxWorkspace, cgroupFD int) (*exec.Cmd, *limitedBuffer, *limitedBuffer) {
 	cmd := buildSandboxCommand(stdin, ws, cgroupFD)
 	return buildCommandBuffersForCommand(cmd)
 }
 
-func buildCommandBuffersWithoutCgroupFD(stdin string, ws sandboxWorkspace) (*exec.Cmd, *limitedBuffer, *limitedBuffer) {
+func buildCommandBuffersWithoutCgroupFD(stdin string, ws SandboxWorkspace) (*exec.Cmd, *limitedBuffer, *limitedBuffer) {
 	cmd := buildSandboxCommandWithoutCgroupFD(stdin, ws)
 	return buildCommandBuffersForCommand(cmd)
 }
@@ -124,7 +124,7 @@ func buildCommandBuffersForCommand(cmd *exec.Cmd) (*exec.Cmd, *limitedBuffer, *l
 	return cmd, stdoutBuf, stderrBuf
 }
 
-func startSandboxWithCgroup(stdin string, ws sandboxWorkspace, cgroupFD int, trace *executionTrace) (*exec.Cmd, *limitedBuffer, *limitedBuffer, error) {
+func startSandboxWithCgroup(stdin string, ws SandboxWorkspace, cgroupFD int, trace *executionTrace) (*exec.Cmd, *limitedBuffer, *limitedBuffer, error) {
 	cmd, stdoutBuf, stderrBuf := buildCommandBuffers(stdin, ws, cgroupFD)
 	trace.ok("built sandbox command with cgroup fd")
 	if err := startSandbox(cmd); err != nil {
@@ -149,7 +149,7 @@ func osRemoveAll(path string) error {
 	return os.RemoveAll(path)
 }
 
-func cleanupWorkspace(ws *sandboxWorkspace) {
+func cleanupWorkspace(ws *SandboxWorkspace) {
 	cleanupRuntimeMounts(ws)
-	_ = osRemoveAll(ws.dir)
+	_ = osRemoveAll(ws.Dir)
 }

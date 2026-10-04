@@ -12,87 +12,90 @@ import (
 var syscallMount = syscall.Mount
 var syscallUnmount = syscall.Unmount
 
-type sandboxWorkspace struct {
-	dir                 string
-	sourcePath          string
-	binaryPath          string
-	sandboxInitHostPath string
-	sandboxInitExecPath string
-	compileCommand      []string
-	runCommand          []string
-	extraEnv            []string
-	useChroot           bool
-	runtimeMounts       []string
-	mountedTargets      []string
+// SandboxWorkspace describes the on-disk layout and launch plan for a single
+// sandboxed execution. It is exported so the integration tests in the tests
+// package can assert on the isolation plan without duplicating production logic.
+type SandboxWorkspace struct {
+	Dir                 string
+	SourcePath          string
+	BinaryPath          string
+	SandboxInitHostPath string
+	SandboxInitExecPath string
+	CompileCommand      []string
+	RunCommand          []string
+	ExtraEnv            []string
+	UseChroot           bool
+	RuntimeMounts       []string
+	MountedTargets      []string
 }
 
-func prepareWorkspace(language, code string) (sandboxWorkspace, error) {
+func prepareWorkspace(language, code string) (SandboxWorkspace, error) {
 	dir, err := os.MkdirTemp("", "codesandbox-*")
 	if err != nil {
-		return sandboxWorkspace{}, fmt.Errorf("failed to create sandbox dir: %w", err)
+		return SandboxWorkspace{}, fmt.Errorf("failed to create sandbox dir: %w", err)
 	}
 	if err := os.Chown(dir, 65534, 65534); err != nil {
 		_ = os.RemoveAll(dir)
-		return sandboxWorkspace{}, fmt.Errorf("failed to set sandbox dir ownership: %w", err)
+		return SandboxWorkspace{}, fmt.Errorf("failed to set sandbox dir ownership: %w", err)
 	}
 	if err := os.Chmod(dir, 0o755); err != nil {
 		_ = os.RemoveAll(dir)
-		return sandboxWorkspace{}, fmt.Errorf("failed to set sandbox dir permissions: %w", err)
+		return SandboxWorkspace{}, fmt.Errorf("failed to set sandbox dir permissions: %w", err)
 	}
 	ws, err := buildWorkspacePlan(dir, language)
 	if err != nil {
 		_ = os.RemoveAll(dir)
-		return sandboxWorkspace{}, err
+		return SandboxWorkspace{}, err
 	}
-	if err := os.WriteFile(ws.sourcePath, []byte(code), 0o644); err != nil {
+	if err := os.WriteFile(ws.SourcePath, []byte(code), 0o644); err != nil {
 		_ = os.RemoveAll(dir)
-		return sandboxWorkspace{}, fmt.Errorf("failed to write source: %w", err)
+		return SandboxWorkspace{}, fmt.Errorf("failed to write source: %w", err)
 	}
 	return ws, nil
 }
 
-func buildWorkspacePlan(dir, language string) (sandboxWorkspace, error) {
+func buildWorkspacePlan(dir, language string) (SandboxWorkspace, error) {
 	normalized := normalizeLanguage(language)
-	ws := sandboxWorkspace{
-		dir:                 dir,
-		binaryPath:          filepath.Join(dir, "program"),
-		sandboxInitHostPath: filepath.Join(dir, "sandbox-init"),
-		sandboxInitExecPath: "/sandbox-init",
+	ws := SandboxWorkspace{
+		Dir:                 dir,
+		BinaryPath:          filepath.Join(dir, "program"),
+		SandboxInitHostPath: filepath.Join(dir, "sandbox-init"),
+		SandboxInitExecPath: "/sandbox-init",
 	}
 
 	switch normalized {
 	case "c":
-		ws.sourcePath = filepath.Join(dir, "main.c")
-		ws.compileCommand = []string{"gcc", "-O2", "-pipe", "-std=c11", "-static", "-s", "-o", ws.binaryPath, ws.sourcePath}
-		ws.runCommand = []string{"/program"}
-		ws.useChroot = true
+		ws.SourcePath = filepath.Join(dir, "main.c")
+		ws.CompileCommand = []string{"gcc", "-O2", "-pipe", "-std=c11", "-static", "-s", "-o", ws.BinaryPath, ws.SourcePath}
+		ws.RunCommand = []string{"/program"}
+		ws.UseChroot = true
 	case "cpp":
-		ws.sourcePath = filepath.Join(dir, "main.cpp")
-		ws.compileCommand = []string{"g++", "-O2", "-pipe", "-std=c++17", "-static", "-s", "-o", ws.binaryPath, ws.sourcePath}
-		ws.runCommand = []string{"/program"}
-		ws.useChroot = true
+		ws.SourcePath = filepath.Join(dir, "main.cpp")
+		ws.CompileCommand = []string{"g++", "-O2", "-pipe", "-std=c++17", "-static", "-s", "-o", ws.BinaryPath, ws.SourcePath}
+		ws.RunCommand = []string{"/program"}
+		ws.UseChroot = true
 	case "java":
 		javaBin, javaLibDir, javaHome, err := resolveJavaRuntime()
 		if err != nil {
-			return sandboxWorkspace{}, err
+			return SandboxWorkspace{}, err
 		}
-		ws.sourcePath = filepath.Join(dir, "Main.java")
-		ws.compileCommand = []string{"javac", ws.sourcePath}
-		ws.runCommand = []string{javaBin, "-Xms8m", "-Xmx24m", "-cp", "/", "Main"}
-		ws.extraEnv = []string{"LD_LIBRARY_PATH=" + javaLibDir, "JAVA_HOME=" + javaHome}
-		ws.useChroot = true
-		ws.runtimeMounts = defaultRuntimeMounts()
+		ws.SourcePath = filepath.Join(dir, "Main.java")
+		ws.CompileCommand = []string{"javac", ws.SourcePath}
+		ws.RunCommand = []string{javaBin, "-Xms8m", "-Xmx24m", "-cp", "/", "Main"}
+		ws.ExtraEnv = []string{"LD_LIBRARY_PATH=" + javaLibDir, "JAVA_HOME=" + javaHome}
+		ws.UseChroot = true
+		ws.RuntimeMounts = defaultRuntimeMounts()
 		securityFile := filepath.Join(javaHome, "conf", "security", "java.security")
 		if resolvedSecurityFile, resolveErr := filepath.EvalSymlinks(securityFile); resolveErr == nil {
-			ws.runtimeMounts = append(ws.runtimeMounts, filepath.Dir(resolvedSecurityFile))
+			ws.RuntimeMounts = append(ws.RuntimeMounts, filepath.Dir(resolvedSecurityFile))
 		}
 	case "python3":
-		ws.sourcePath = filepath.Join(dir, "main.py")
-		ws.runCommand = []string{"/usr/bin/python3", "/main.py"}
-		ws.useChroot = true
-		ws.runtimeMounts = defaultRuntimeMounts()
+		ws.SourcePath = filepath.Join(dir, "main.py")
+		ws.RunCommand = []string{"/usr/bin/python3", "/main.py"}
+		ws.UseChroot = true
+		ws.RuntimeMounts = defaultRuntimeMounts()
 	default:
-		return sandboxWorkspace{}, fmt.Errorf("unsupported language: %s", language)
+		return SandboxWorkspace{}, fmt.Errorf("unsupported language: %s", language)
 	}
 
 	return ws, nil
@@ -161,8 +164,8 @@ func defaultRuntimeMounts() []string {
 	return []string{"/usr", "/lib", "/lib64", "/bin"}
 }
 
-func prepareRuntimeMounts(ws *sandboxWorkspace) error {
-	if !ws.useChroot || len(ws.runtimeMounts) == 0 {
+func prepareRuntimeMounts(ws *SandboxWorkspace) error {
+	if !ws.UseChroot || len(ws.RuntimeMounts) == 0 {
 		return nil
 	}
 
@@ -171,7 +174,7 @@ func prepareRuntimeMounts(ws *sandboxWorkspace) error {
 		return fmt.Errorf("failed to mark root mount propagation private: %w", err)
 	}
 
-	for _, source := range ws.runtimeMounts {
+	for _, source := range ws.RuntimeMounts {
 		sourceInfo, err := os.Lstat(source)
 		if os.IsNotExist(err) {
 			continue
@@ -181,7 +184,7 @@ func prepareRuntimeMounts(ws *sandboxWorkspace) error {
 			return fmt.Errorf("failed to inspect runtime mount source %s: %w", source, err)
 		}
 
-		target := filepath.Join(ws.dir, strings.TrimPrefix(source, "/"))
+		target := filepath.Join(ws.Dir, strings.TrimPrefix(source, "/"))
 		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 			cleanupRuntimeMounts(ws)
 			return fmt.Errorf("failed to prepare mount target %s: %w", target, err)
@@ -212,7 +215,7 @@ func prepareRuntimeMounts(ws *sandboxWorkspace) error {
 			cleanupRuntimeMounts(ws)
 			return fmt.Errorf("failed to prepare read-only bind mount %s -> %s: %w", source, target, err)
 		}
-		ws.mountedTargets = append(ws.mountedTargets, target)
+		ws.MountedTargets = append(ws.MountedTargets, target)
 	}
 
 	return nil
@@ -229,21 +232,21 @@ func bindMountReadOnly(source, target string) error {
 	return nil
 }
 
-func cleanupRuntimeMounts(ws *sandboxWorkspace) {
-	for i := len(ws.mountedTargets) - 1; i >= 0; i-- {
-		target := ws.mountedTargets[i]
+func cleanupRuntimeMounts(ws *SandboxWorkspace) {
+	for i := len(ws.MountedTargets) - 1; i >= 0; i-- {
+		target := ws.MountedTargets[i]
 		_ = syscall.Unmount(target, syscall.MNT_DETACH)
 	}
-	ws.mountedTargets = nil
+	ws.MountedTargets = nil
 }
 
-func compileWorkspace(ws sandboxWorkspace) (string, bool) {
-	if len(ws.compileCommand) == 0 {
+func compileWorkspace(ws SandboxWorkspace) (string, bool) {
+	if len(ws.CompileCommand) == 0 {
 		return "", true
 	}
 
-	cmd := exec.Command(ws.compileCommand[0], ws.compileCommand[1:]...)
-	cmd.Dir = ws.dir
+	cmd := exec.Command(ws.CompileCommand[0], ws.CompileCommand[1:]...)
+	cmd.Dir = ws.Dir
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return string(out), false

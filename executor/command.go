@@ -7,18 +7,18 @@ import (
 	"syscall"
 )
 
-func buildSandboxCommand(stdin string, ws sandboxWorkspace, cgroupFD int) *exec.Cmd {
+func buildSandboxCommand(stdin string, ws SandboxWorkspace, cgroupFD int) *exec.Cmd {
 	return buildSandboxCommandWithCgroupMode(stdin, ws, cgroupFD, true)
 }
 
-func buildSandboxCommandWithoutCgroupFD(stdin string, ws sandboxWorkspace) *exec.Cmd {
+func buildSandboxCommandWithoutCgroupFD(stdin string, ws SandboxWorkspace) *exec.Cmd {
 	return buildSandboxCommandWithCgroupMode(stdin, ws, 0, false)
 }
 
-func buildSandboxCommandWithCgroupMode(stdin string, ws sandboxWorkspace, cgroupFD int, useCgroupFD bool) *exec.Cmd {
-	command := ws.runCommand
-	if ws.sandboxInitExecPath != "" {
-		command = append([]string{ws.sandboxInitExecPath}, ws.runCommand...)
+func buildSandboxCommandWithCgroupMode(stdin string, ws SandboxWorkspace, cgroupFD int, useCgroupFD bool) *exec.Cmd {
+	command := ws.RunCommand
+	if ws.SandboxInitExecPath != "" {
+		command = append([]string{ws.SandboxInitExecPath}, ws.RunCommand...)
 	}
 
 	cmd := exec.Command(command[0], command[1:]...)
@@ -33,11 +33,11 @@ func buildSandboxCommandWithCgroupMode(stdin string, ws sandboxWorkspace, cgroup
 		GidMappingsEnableSetgroups: false,
 	}
 	setNoNewPrivsIfSupported(sysProcAttr)
-	if ws.useChroot {
-		sysProcAttr.Chroot = ws.dir
+	if ws.UseChroot {
+		sysProcAttr.Chroot = ws.Dir
 		cmd.Dir = "/"
 	} else {
-		cmd.Dir = ws.dir
+		cmd.Dir = ws.Dir
 	}
 	cmd.SysProcAttr = sysProcAttr
 	if stdin != "" {
@@ -49,8 +49,8 @@ func buildSandboxCommandWithCgroupMode(stdin string, ws sandboxWorkspace, cgroup
 		"LANG=C.UTF-8",
 	}
 	cmd.Env = append([]string{}, baseEnv...)
-	if len(ws.extraEnv) > 0 {
-		cmd.Env = append(cmd.Env, ws.extraEnv...)
+	if len(ws.ExtraEnv) > 0 {
+		cmd.Env = append(cmd.Env, ws.ExtraEnv...)
 	}
 	return cmd
 }

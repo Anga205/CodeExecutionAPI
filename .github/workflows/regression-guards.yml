@@ -20,8 +20,11 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: Vet all packages
+        run: go vet ./...
+
       - name: Run unit tests (non-root packages)
-        run: go test ./config ./dispatcher ./executor ./models ./resourcemanager ./routes
+        run: go test ./config ./dispatcher ./executor ./models ./resourcemanager ./routes ./tests/executor
 
       - name: Run regression guard checks
         run: bash .github/scripts/check_regressions.sh

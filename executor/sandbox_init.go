@@ -14,8 +14,8 @@ var (
 	sandboxInitErr    error
 )
 
-func ensureSandboxInitBinary(ws *sandboxWorkspace) error {
-	if ws.sandboxInitHostPath == "" || ws.sandboxInitExecPath == "" {
+func ensureSandboxInitBinary(ws *SandboxWorkspace) error {
+	if ws.SandboxInitHostPath == "" || ws.SandboxInitExecPath == "" {
 		return nil
 	}
 
@@ -23,7 +23,7 @@ func ensureSandboxInitBinary(ws *sandboxWorkspace) error {
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(ws.sandboxInitHostPath, binary, 0o755); err != nil {
+	if err := os.WriteFile(ws.SandboxInitHostPath, binary, 0o755); err != nil {
 		return fmt.Errorf("failed to install sandbox init binary: %w", err)
 	}
 	return nil

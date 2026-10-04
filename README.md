@@ -466,16 +466,32 @@ From the repository root, run:
 
 ```bash
 sudo -E go test ./...
-sudo -E go test -race ./executor
+sudo -E go test -race ./tests ./tests/executor
 bash .github/scripts/check_regressions.sh
 git diff --check
 ```
 
+All integration and security tests live in the `tests` package. The suite is split by concern:
+
+| File | Contents |
+| --- | --- |
+| `tests/main_test.go` | `TestMain`, root/compiler preconditions, shared server |
+| `tests/harness_test.go` | request/response types, HTTP helpers, fixture loading |
+| `tests/assertions_test.go` | duration, disk, process and checksum assertions |
+| `tests/languages_test.go` | language descriptors used to parameterize scenarios |
+| `tests/isolation_test.go`, `tests/scenarios_isolation_test.go` | isolation scenarios, run once per language |
+| `tests/hardening_test.go`, `tests/hostile_chain_test.go` | sandbox hardening scenarios |
+| `tests/security_boundary_test.go` | namespace, IPC, UTS, procfs and descriptor probe |
+| `tests/overload_test.go` | admission control under load |
+| `tests/executor/*_test.go` | executor unit tests (no root required) |
+
+Sample programs live in `tests/testdata/sample_code/<scenario>/`.
+
 Run the repeated hostile boundary probe with:
 
 ```bash
-sudo -E go test -count=3 -run '^TestSecurityBoundaryNamespacesAndInheritedResources$' ./...
-sudo -E go test -count=3 -run '^TestSandboxHardeningC$/^hostile boundary attack chain cannot cross sandbox$' ./...
+sudo -E go test -count=3 -run '^TestSecurityBoundaryNamespacesAndInheritedResources$' ./tests
+sudo -E go test -count=3 -run '^TestSandboxHardeningC$/^hostile boundary attack chain cannot cross sandbox$' ./tests
 ```
 
 `sudo` is required because the test harness intentionally exercises privileged Linux isolation and cgroup operations. Never ignore a failed command, add `|| true`, or treat a skipped privileged test as success.
@@ -488,7 +504,7 @@ Use a disposable directory, never a real secret:
 sentinel_dir=$(mktemp -d)
 printf '%s\n' 'operator-sentinel-must-not-change' > "$sentinel_dir/sentinel"
 sha256sum "$sentinel_dir/sentinel"
-sudo -E go test -run '^TestSecurityBoundaryNamespacesAndInheritedResources$' ./...
+sudo -E go test -run '^TestSecurityBoundaryNamespacesAndInheritedResources$' ./tests
 sha256sum "$sentinel_dir/sentinel"
 rm -rf "$sentinel_dir"
 ```
@@ -499,7 +515,7 @@ The adversarial workload attempts filesystem, descriptor, procfs, sysfs, IPC, UT
 
 Review the test output and host state after the suite. Confirm that host files are unreadable and unchanged, host processes cannot be enumerated or signalled, devices and mounts cannot be manipulated, `/sys` cannot be written, Unix sockets are not reachable, host environment secrets and file descriptors are absent, the configured network policy holds, sandbox descendants disappear after termination, and sandbox temporary resources do not remain on the host.
 
-For cross-sandbox verification, run the repeated boundary probe while another terminal runs `sudo -E go test -count=10 -run '^TestSecurityBoundaryNamespacesAndInheritedResources$' ./...`. Neither run may report inherited descriptors, host process access, IPC visibility, host socket access, or host sentinel changes.
+For cross-sandbox verification, run the repeated boundary probe while another terminal runs `sudo -E go test -count=10 -run '^TestSecurityBoundaryNamespacesAndInheritedResources$' ./tests`. Neither run may report inherited descriptors, host process access, IPC visibility, host socket access, or host sentinel changes.
 
 #### Failure interpretation
 

@@ -1,9 +1,11 @@
-package executor
+package executor_test
 
 import (
 	"os/exec"
 	"strings"
 	"testing"
+
+	"CodeSandboxAPI/executor"
 )
 
 func TestAppendExitDiagnosticAddsSeccompHintForSigsys(t *testing.T) {
@@ -13,7 +15,7 @@ func TestAppendExitDiagnosticAddsSeccompHintForSigsys(t *testing.T) {
 		t.Fatal("expected process to fail with SIGSYS")
 	}
 
-	got := appendExitDiagnostic("", err)
+	got := executor.AppendExitDiagnostic("", err)
 	if !strings.Contains(strings.ToLower(got), "sigsys") {
 		t.Fatalf("expected SIGSYS in diagnostic, got: %q", got)
 	}
@@ -32,7 +34,7 @@ func TestAppendExitDiagnosticReportsExitCode(t *testing.T) {
 		t.Fatal("expected process to exit with non-zero status")
 	}
 
-	got := appendExitDiagnostic("", err)
+	got := executor.AppendExitDiagnostic("", err)
 	if !strings.Contains(got, "non-zero status 7") {
 		t.Fatalf("expected exit status details, got: %q", got)
 	}
@@ -45,7 +47,7 @@ func TestAppendExitDiagnosticPreservesExistingStderr(t *testing.T) {
 		t.Fatal("expected process to exit with non-zero status")
 	}
 
-	got := appendExitDiagnostic("runtime error", err)
+	got := executor.AppendExitDiagnostic("runtime error", err)
 	if !strings.HasPrefix(got, "runtime error\n") {
 		t.Fatalf("expected existing stderr to be preserved, got: %q", got)
 	}
